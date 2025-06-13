@@ -222,8 +222,8 @@ func newPeerConnection(peers *[]Peer) int {
 	}
 }
 
-func setupTrackHandler(peers []Peer, peerIndex int) {
-	for index, peer := range peers {
+func setupTrackHandler(peers *[]Peer, peerIndex int) {
+	for index, peer := range *peers {
 		if index == peerIndex {
 			continue
 		}
@@ -240,12 +240,12 @@ func setupTrackHandler(peers []Peer, peerIndex int) {
 	}
 
 	var remoteAddressAudio *net.UDPAddr
-	remoteAddressAudio, err = net.ResolveUDPAddr("udp", "127.0.0.1:4001")
+	remoteAddressAudio, err = net.ResolveUDPAddr("udp", "127.0.0.1:4002")
 	if err != nil {
 		panic(fmt.Sprintf("logic: net.ResolveUDPAddr for remote audio - %s", err))
 	}
 
-	peers[peerIndex].remoteAudioConnection, err = net.DialUDP("udp", localAddress, remoteAddressAudio)
+	(*peers)[peerIndex].remoteAudioConnection, err = net.DialUDP("udp", localAddress, remoteAddressAudio)
 	if err != nil {
 		fmt.Fprintf(os.Stderr,
 			"peer %d: audio - net.DialUDP - %s\n",
@@ -254,12 +254,12 @@ func setupTrackHandler(peers []Peer, peerIndex int) {
 	}
 
 	var remoteAddressVideo *net.UDPAddr
-	remoteAddressVideo, err = net.ResolveUDPAddr("udp", "127.0.0.1:4002")
+	remoteAddressVideo, err = net.ResolveUDPAddr("udp", "127.0.0.1:4004")
 	if err != nil {
 		panic(fmt.Sprintf("logic: net.ResolveUDPAddr for remote video - %s", err))
 	}
 
-	peers[peerIndex].remoteVideoConnection, err = net.DialUDP("udp", localAddress, remoteAddressVideo)
+	(*peers)[peerIndex].remoteVideoConnection, err = net.DialUDP("udp", localAddress, remoteAddressVideo)
 	if err != nil {
 		fmt.Fprintf(os.Stderr,
 			"peer %d: video - net.DialUDP - %s\n",
@@ -267,12 +267,12 @@ func setupTrackHandler(peers []Peer, peerIndex int) {
 			err)
 	}
 
-	peers[peerIndex].peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+	(*peers)[peerIndex].peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		connection, payloadType := func(track *webrtc.TrackRemote) (*net.UDPConn, uint8) {
 			if track.Kind().String() == "video" {
-				return peers[peerIndex].remoteVideoConnection, 111
+				return (*peers)[peerIndex].remoteVideoConnection, 111
 			} else {
-				return peers[peerIndex].remoteAudioConnection, 96
+				return (*peers)[peerIndex].remoteAudioConnection, 96
 			}
 		}(track)
 
@@ -280,11 +280,11 @@ func setupTrackHandler(peers []Peer, peerIndex int) {
 		rtpPacket := &rtp.Packet{}
 		breakEvenOnConnectionRefuse := false
 		for {
-			if peers[peerIndex].peerConnection == nil ||
-				peers[peerIndex].remoteAudioConnection == nil ||
-				peers[peerIndex].remoteVideoConnection == nil ||
-				peers[peerIndex].localAudioTrack == nil ||
-				peers[peerIndex].localVideoTrack == nil {
+			if (*peers)[peerIndex].peerConnection == nil ||
+				(*peers)[peerIndex].remoteAudioConnection == nil ||
+				(*peers)[peerIndex].remoteVideoConnection == nil ||
+				(*peers)[peerIndex].localAudioTrack == nil ||
+				(*peers)[peerIndex].localVideoTrack == nil {
 				break
 			}
 
@@ -330,10 +330,10 @@ func setupTrackHandler(peers []Peer, peerIndex int) {
 					"peer %d: rtp packet write - %s\n",
 					peerIndex,
 					err)
-				breakEvenOnConnectionRefuse = true
 
 				break
 			}
+			breakEvenOnConnectionRefuse = true
 		}
 	})
 }
@@ -429,7 +429,7 @@ func signalWaitForGuest(signalServer string,
 	}
 }
 
-func streamLocalTrack(peers []Peer) {
+func streamLocalTrack(peers *[]Peer) {
 	listener, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4000})
 	if err != nil {
 		fmt.Fprintf(os.Stderr,
@@ -465,7 +465,7 @@ func streamLocalTrack(peers []Peer) {
 		}
 
 		// fmt.Println(readBytes)
-		for peerIndex, peer := range peers {
+		for peerIndex, peer := range *peers {
 			if peer.localVideoTrack == nil {
 				continue
 			}
@@ -486,7 +486,7 @@ func streamLocalTrack(peers []Peer) {
 }
 
 func main() {
-	if 3 != len(os.Args) {
+	if len(os.Args) != 3 {
 		fmt.Fprintf(os.Stderr,
 			"example usage: ./host-golang https://meetrostation.com \"secret host room id\"\n")
 		return
@@ -499,7 +499,7 @@ func main() {
 	var peers []Peer
 	var peerIndex int
 
-	go streamLocalTrack(peers)
+	go streamLocalTrack(&peers)
 
 	for {
 		peerIndex = newPeerConnection(&peers)
