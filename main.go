@@ -531,8 +531,6 @@ func main() {
 			break
 		}
 
-		setupTrackHandler(&peers, peerIndex)
-
 		fmt.Fprintf(os.Stderr, "peer %d: waiting for ice stuff\n", peerIndex)
 		<-peers[peerIndex].gatherComplete
 
@@ -546,8 +544,9 @@ func main() {
 		peers[peerIndex].peerConnection.SetRemoteDescription(guestOffer)
 
 		fmt.Fprintf(os.Stderr, "peer %d: waiting for the peer connection\n", peerIndex)
+		time.Sleep(1 * time.Second)
 
-		time.Sleep(3 * time.Second)
+		setupTrackHandler(&peers, peerIndex)
 	}
 }
 
