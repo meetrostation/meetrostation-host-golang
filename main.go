@@ -541,12 +541,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "peer %d: waiting for the peer to join\n", peerIndex)
 
 		guestOffer := signalWaitForGuest(signalServer, hostId, peers, peerIndex)
+
+		setupTrackHandler(&peers, peerIndex)
+
 		peers[peerIndex].peerConnection.SetRemoteDescription(guestOffer)
 
 		fmt.Fprintf(os.Stderr, "peer %d: waiting for the peer connection\n", peerIndex)
 		time.Sleep(1 * time.Second)
-
-		setupTrackHandler(&peers, peerIndex)
 	}
 }
 
