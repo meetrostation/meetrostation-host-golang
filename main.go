@@ -531,7 +531,7 @@ func main() {
 			break
 		}
 
-		setupTrackHandler(peers, peerIndex)
+		setupTrackHandler(&peers, peerIndex)
 
 		fmt.Fprintf(os.Stderr, "peer %d: waiting for ice stuff\n", peerIndex)
 		<-peers[peerIndex].gatherComplete
